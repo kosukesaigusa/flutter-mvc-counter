@@ -12,9 +12,9 @@
 
 MVC アーキテクチャの詳しい説明は、たとえば次のような文書：
 
-に任せることにして本書では省略しますが、MVC アーキテクチャは、プログラムを M (Model), V (View), C (Controller) の役割に分担して記述するアーキテクチャです。
-
 <https://www.artima.com/articles/the-dci-architecture-a-new-vision-of-object-oriented-programming>
+
+に任せることにして本書では省略しますが、MVC アーキテクチャは、プログラムを M (Model), V (View), C (Controller) の役割に分担して記述するアーキテクチャです。
 
 それぞれの役割を簡単に説明すると、以下の通りです。
 
