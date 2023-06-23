@@ -44,5 +44,15 @@ void main() {
       counter.append();
       expect(counter.calculateTotal(), 3);
     });
+
+    test('リストの値の合計が 5 の倍数である判定が正しくされる', () {
+      counter.increment();
+      counter.increment();
+      counter.append();
+      expect(counter.isTotalMultipleOfFive(), false);
+      counter.increment();
+      counter.append();
+      expect(counter.isTotalMultipleOfFive(), true);
+    });
   });
 }

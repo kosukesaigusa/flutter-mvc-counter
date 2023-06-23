@@ -35,4 +35,7 @@ class Counter extends ChangeNotifier {
   int calculateTotal() {
     return _counts.fold(0, (a, b) => a + b);
   }
+
+  /// カウント値の合計が 5 の倍数であるかを判定する。
+  bool isTotalMultipleOfFive() => calculateTotal() % 5 == 0;
 }

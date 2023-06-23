@@ -18,7 +18,7 @@ class CounterController {
   void addToList(BuildContext context) {
     _counter.append();
     final total = _counter.calculateTotal();
-    if (total % 5 == 0) {
+    if (_counter.isTotalMultipleOfFive()) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('合計値 ($total) は 5 の倍数です！'),

@@ -73,9 +73,9 @@ Flutter アプリにおいて、格闘ゲームのコントローラに相当す
 
 ### Model
 
-Model は View と Controller (UI) 以外のアプリケーションの振る舞いです。上述の通り、View と Controller は Flutter フレームワークに大きく依存しますが、Model は Flutter フレームワークや環境にできるだけ依存しないように記述して、ユニットテストを可能にする方針が望ましいでしょう。
+Model は View と Controller (UI) 以外のアプリケーションの振る舞いです。上述の通り、View と Controller は Flutter フレームワークに大きく依存しますが、Model は Flutter フレームワークや環境にできるだけ依存しないように記述して、ユニットテストを可能にする方針が望ましいです。
 
-Flutter フレームワークや外部の環境に依存せず、ピュアな Dart で記述できることが理想でしょう。そうすることでユニットテストもピュアな Dart で記述することができます。
+Flutter フレームワークや外部の環境に依存せず、ピュアな Dart で記述できることが理想でしょう。そうすることでユニットテストもピュアな Dart で記述することができます。他のクラスのインスタンスに依存する場合には、コンストラクタインジェクションで依存性を注入するのが通例です。
 
 と言いつつ、本章で取り上げるカウンターアプリでは、モデルは Flutter の `ChangeNotifier` には依存することを認めることとします。しばしば「UI = f(state)」で説明される Model → View の関係と View の更新をかんたんに実装できる上、モデルのユニットテスト可能性には影響を及ぼさないからです（影響を及ぼさないように実装します）。
 
@@ -122,7 +122,14 @@ void increment() {
 }
 ```
 
-同様に、カウント値をリストに追加する処理、カウント値とカウント値のリストをクリアする処理、カウント値のリストの合計を計算する処理を、それぞれのメソッドとして定義すれば `Counter` モデルがほぼ完成です。ここまではピュアな Dart で何にも依存せずにカウンターの振る舞いを記述できています。
+同様に、
+
+- カウント値をリストに追加する処理
+- カウント値とカウント値のリストをクリアする処理
+- カウント値のリストの合計を計算する処理を
+- カウント値の合計が 5 の倍数であるかを判定する処理
+
+をそれぞれのメソッドとして定義すれば `Counter` モデルがほぼ完成です。ここまではピュアな Dart で何にも依存せずにカウンターの振る舞いを記述できています。
 
 ```dart
 /// カウンターの振る舞いを表現するモデル。
@@ -153,6 +160,9 @@ class Counter {
   int calculateTotal() {
     return _counts.fold(0, (a, b) => a + b);
   }
+
+  /// カウント値の合計が 5 の倍数であるかを判定する。
+  bool isTotalMultipleOfFive() => calculateTotal() % 5 == 0;
 }
 ```
 
@@ -194,6 +204,9 @@ class Counter extends ChangeNotifier {
   int calculateTotal() {
     return _counts.fold(0, (a, b) => a + b);
   }
+
+  /// カウント値の合計が 5 の倍数であるかを判定する。
+  bool isTotalMultipleOfFive() => calculateTotal() % 5 == 0;
 }
 ```
 
@@ -202,8 +215,6 @@ class Counter extends ChangeNotifier {
 Model が完成したので、View や Controller の実装に移る前に、Model のユニットテストを完成させてみます。
 
 Dart (Flutter) におけるユニットテストの書き方の詳細はここでは説明しませんが、`ChangeNotifier` にしか依存していない `Counter` モデルは、次のように簡単にユニットテストを書くことができ、その振る舞いを説明したり振る舞いの正しさを検査したりすることができます。
-
-また、例えばカウントの値を、サーバサイドで実装した API と通信して送信・永続化するような機能を追加する場合には、`Counter` クラスのコンストラクタでインジェクションすることで、ユニットテストではそれをモックに置き換えて、テストを記述することが容易にできます。
 
 ```dart
 void main() {
@@ -249,9 +260,34 @@ void main() {
       counter.append();
       expect(counter.calculateTotal(), 3);
     });
+
+    test('リストの値の合計が 5 の倍数である判定が正しくされる', () {
+      counter.increment();
+      counter.increment();
+      counter.append();
+      expect(counter.isTotalMultipleOfFive(), false);
+      counter.increment();
+      counter.append();
+      expect(counter.isTotalMultipleOfFive(), true);
+    });
   });
 }
 ```
+
+また、例えばカウントの値を何かしらの API と通信して送信し永続化するようなこともあるでしょう。そのような場合には、`Counter` クラスのコンストラクタで、リポジトリクラスや API クライアントのクラスをインジェクトします。
+
+```dart
+class Counter extends ChangeNotifier {
+  Counter(Repository repository): _repository = repository;
+
+  /// リポジトリクラスのインスタンス。
+  final Repository _repository;
+
+  // ... 省略
+}
+```
+
+そうすることで、ユニットテストではそれをモックに置き換えることが容易にできます。
 
 ### Controller の実装
 
@@ -261,11 +297,11 @@ void main() {
 
 ユーザー操作に相当するコントローラの各メソッドが、ユーザーの操作を解釈しながら、対応するモデルのメソッドを呼ぶようなつくりになっています。
 
-`addToList` メソッドでは、合計値が 5 の倍数であるかどうかを判定して、そうである場合には、`SnackBar` を表示しています。これも View の操作を行うという意味で、コントローラの役割と捉えることができます。
+`addToList` メソッドでは、合計値が 5 の倍数であるかどうかを判定して、そうである場合には、`SnackBar` を表示しています。これも Model を反映した View に反映するという意味で、コントローラの役割と捉えることができます。
 
 他にも、例えばモデルで発生した例外を捕捉して、同様に `SnackBar` や `AlertDialog` を表示するような実装もコントローラに記述すると良いでしょう。
 
-Model と違って Flutter に依存することを認めており、例えば `ElevatedButton` の `onPressed` に記述しても差し支えないような処理なので、`BuildContext` をメソッドの引数として渡すようなことも、ここでは許容しています。
+Model と違って Flutter に依存することを認めており、例えば `ElevatedButton` の `onPressed` に直接記述しても差し支えないような処理なので、`BuildContext` をメソッドの引数として渡すことも、ここでは許容しています。
 
 ```dart
 /// ユーザーによる操作を解釈して [Counter] モデルを操作したり、モデルを UI に反映
@@ -284,7 +320,7 @@ class CounterController {
   void addToList(BuildContext context) {
     _counter.append();
     final total = _counter.calculateTotal();
-    if (total % 5 == 0) {
+    if (_counter.isTotalMultipleOfFive()) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('合計値 ($total) は 5 の倍数です！'),
@@ -356,7 +392,7 @@ class CounterPage extends StatelessWidget {
 
 どのモジュールが他のどのモジュールに依存することは許して、反対にどのモジュールへの依存は許さないかを明確化し、依存させる場合にはどのように依存すると良いかの具体例を示すことで、テスト容易性、依存性の注入、PDS (Presentation Domain Separation) などの概念に関しても、意識したり学んだりするきっかけになるとも思います。
 
-MVC アーキテクチャは最も抽象的なアーキテクチャとして、その思想を学ぶことは、今後他の様々なアーキテクチャを学ぶ上でもその思想を理解することは重要です。それぞれのアーキテクチャのそれぞれのレイヤーや役割が MVC のどれに相当するのかを考えることで理解が深まるでしょう。
+MVC アーキテクチャは最も抽象的なアーキテクチャとして、その思想を学ぶことは、今後他の様々なアーキテクチャを学ぶ上でも重要です。それぞれのアーキテクチャのそれぞれのレイヤーや役割が MVC のどれに相当するのかを考えることで理解が深まるでしょう。
 
 また、ある程度大きい規模のアプリケーションであっても、MVC アーキテクチャによって十分に高い開発体験やテスト容易性を担保した開発を行うことができるはずです。
 
